@@ -8,7 +8,6 @@ from multiprocessing import shared_memory
 import pickle, os, random
 import numpy as np
 from pprint import pprint
-from random import randrange
 
 
 Data = namedtuple('Data', ['perc68', 'perc95', 'perc99', 'avg', 'median'])
@@ -21,7 +20,7 @@ def run_the_sketch(n, order, q, J, epsilon, mem_name=''):
 			stream = StreamMaker().make(n=n, order=order)
 		
 		for item in stream:
-			sketch.update(item)
+			sketch.update(int(item)) # int(i) is important for PyPy3 to run fast
 			
 		if mem_name != '':
 			mem.close()
@@ -39,7 +38,6 @@ def bisect(n, order, q, j, space):
 			small = avg
 		else:
 			big = avg
-		#print(f"cap: {cap} | avg: {avg} small: {small} big: {big}")
 	return avg
 
 def main():
@@ -105,12 +103,12 @@ def main():
 	
 	mem_name = ''
 	if order == "random":
-		mem_name = 'my_mem_'+str(randrange(10000))
 		rng = np.random.default_rng()
 		a = np.array(rng.permutation(np.arange(1,n+1)))
-		mem = shared_memory.SharedMemory(create=True, size=a.nbytes, name=mem_name)
+		mem = shared_memory.SharedMemory(create=True, size=a.nbytes)
 		random_stream = np.ndarray((n,), np.int64, buffer=mem.buf)
 		random_stream[:] = a[:]
+		mem_name = mem.name
 	
 	# run the sketch in paralel "repeat" times
 	with mp.Pool() as pool:
